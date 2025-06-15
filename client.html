@@ -9,7 +9,14 @@
 
 <body>
     <h1>WebSocket Client</h1>
-    <input type="text" id="messageInput" placeholder="Type a message...">
+    <p>Enter your name to join the chat:</p>
+    <p class="error-message"></p>
+    <input type="text" id="nameInput" placeholder="Enter your name...">
+    <div class="message-input">
+        <label for="messageInput">Message:</label>
+        <br>
+        <input type="text" id="messageInput" placeholder="Type a message...">
+    </div>
     <button id="sendButton">Send</button>
     <p id="status">Status: Disconnected</p>
     <ul id="messages"></ul>
@@ -19,6 +26,10 @@
 
         const statusElement = document.getElementById('status');
 
+        let nameInput = document.getElementById('nameInput');
+
+        const messagesList = document.getElementById('messages');
+
         socket.onopen = () => {
             statusElement.textContent = 'Status: Connected';
             console.log('WebSocket connection established');
@@ -26,30 +37,77 @@
 
         socket.onmessage = (event) => {
             console.log('Message received:', event.data);
-            const messagesList = document.getElementById('messages');
             const listItem = document.createElement('li');
             listItem.textContent = event.data;
             messagesList.appendChild(listItem);
         };
 
-        socket.onclose = () => {
-            statusElement.textContent = 'Status: Disconnected';
-            console.log('WebSocket connection closed');
-        };
+
+        let isNamed = false;
 
         document.getElementById('sendButton').addEventListener('click', () => {
             const messageInput = document.getElementById('messageInput');
             console.log('sending message: ', messageInput.value);
-            const message = messageInput.value;
-            if (message) {
-                socket.send(message);
+            let message = messageInput.value.trim();
+            if (nameInput.value.trim() !== '') {
+                // message = `${nameInput.value}: ${message}`;
+                isNamed = true;
+                document.querySelector('.message-input').style.display = 'block';
+                document.querySelector('.error-message').textContent = '';
+                document.getElementById('nameInput').style.display = 'none'; // Disable name input after setting name
+
+            } else if (!isNamed) {
+                document.querySelector('.error-message').textContent = 'Please enter your name before sending a message.';
+                return;
+            }
+            if (isNamed && message === '') {
+                socket.send(`${nameInput.value} has joined the chat.`);
                 console.log('Message sent:', message);
-                messageInput.value = ''; // Clear input after sending
+            } else if (message !== '') {
+                socket.send(`${nameInput.value}: ${message}`);
+                messageInput.value = ''; // Clear the input after sending
+                console.log('Message sent:', message);
             } else {
                 console.warn('Cannot send an empty message');
             }
         });
+
+        socket.onclose = () => {
+            statusElement.textContent = 'Status: Disconnected';
+            console.log('WebSocket connection closed');
+        };
     </script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        .message-input {
+            margin-top: 10px;
+            display: none;
+        }
+
+        .error-message {
+            color: red;
+            font-weight: bold;
+        }
+
+        #messages {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        #messages li {
+            padding: 5px;
+            border-bottom: 1px solid #ccc;
+        }
+    </style>
+
 </body>
 
 </html>
